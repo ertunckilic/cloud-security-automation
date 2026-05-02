@@ -10,4 +10,4 @@ Location: Turkey | Remote
 ## Resources
 - Linux: https://overthewire.org/wargames/bandit/
 - AWS: https://aws.amazon.com/
-- GitHub: https://github.com/ertunckilicAct
+- GitHub: https://github.com/ertunckilic
