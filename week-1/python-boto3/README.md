@@ -1,7 +1,7 @@
 # Day 3: Python Boto3 - AWS API Automation
 
 ## Overview
-Day 3 focuses on learning AWS API automation using Python Boto3. We created 4 scripts to interact with different AWS services.
+Day 3 focuses on learning AWS API automation using Python Boto3. We created 7 scripts to interact with different AWS services.
 
 ## Scripts Created
 
@@ -47,6 +47,39 @@ Features:
 - List IAM roles
 - Get AWS account ID
 
+### 5. cloudwatch_monitoring.py
+Monitor EC2 instances with CloudWatch.
+
+Usage: python cloudwatch_monitoring.py
+
+Features:
+- Get EC2 metrics (CPU, Network, etc)
+- List CloudWatch alarms
+- Create CPU utilization alarms
+
+### 6. security_groups.py
+Manage EC2 security groups and firewall rules.
+
+Usage: python security_groups.py
+
+SecurityGroupManager Class Methods:
+- list_security_groups()
+- get_security_group_rules(group_id)
+- authorize_ssh(group_id, cidr)
+- authorize_http(group_id, cidr)
+- authorize_https(group_id, cidr)
+
+### 7. lambda_automation.py
+Manage AWS Lambda functions.
+
+Usage: python lambda_automation.py
+
+LambdaManager Class Methods:
+- list_functions()
+- get_function_info(function_name)
+- invoke_function(function_name, payload)
+- list_function_configurations(function_name)
+
 ## Setup
 
 Prerequisites:
@@ -59,9 +92,35 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
+AWS Credentials Setup:
+Create ~/.aws/credentials file:
+
+[default]
+aws_access_key_id = YOUR_ACCESS_KEY
+aws_secret_access_key = YOUR_SECRET_KEY
+region = us-east-1
+
+Or use environment variables:
+export AWS_ACCESS_KEY_ID=your_key_id
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=us-east-1
+
+## Running Scripts
+
+python list_ec2.py
+python s3_operations.py
+python ec2_automation.py
+python iam_operations.py
+python cloudwatch_monitoring.py
+python security_groups.py
+python lambda_automation.py
+
 ## Learning Outcomes
 
 ✅ How to use Boto3 library
 ✅ AWS service connectivity
 ✅ Error handling with botocore
 ✅ Programmatic AWS resource management
+✅ Class-based automation patterns
+✅ Client vs Resource patterns
+✅ Security best practices
