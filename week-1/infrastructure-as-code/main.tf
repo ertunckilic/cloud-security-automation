@@ -41,6 +41,11 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
+# Data source for available AZs
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 # Public Subnet
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
@@ -50,17 +55,19 @@ resource "aws_subnet" "public" {
 
   tags = {
     Name = "${var.environment}-public-subnet"
+    Type = "Public"
   }
 }
 
-# Private Subnet
+# Private Subnet with AZ fallback for 1-2+ AZ regions
 resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidr
-  availability_zone = data.aws_availability_zones.available.names[1]
+  availability_zone = data.aws_availability_zones.available.names[min(1, length(data.aws_availability_zones.available.names) - 1)]
 
   tags = {
     Name = "${var.environment}-private-subnet"
+    Type = "Private"
   }
 }
 
@@ -102,7 +109,7 @@ resource "aws_route_table_association" "private" {
 # Security Group
 resource "aws_security_group" "web" {
   name        = "${var.environment}-web-sg"
-  description = "Security group for web servers"
+  description = "Security group for web servers with HTTP, HTTPS, SSH access"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -110,6 +117,7 @@ resource "aws_security_group" "web" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTP from anywhere"
   }
 
   ingress {
@@ -117,6 +125,7 @@ resource "aws_security_group" "web" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTPS from anywhere"
   }
 
   ingress {
@@ -124,6 +133,7 @@ resource "aws_security_group" "web" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow SSH from anywhere"
   }
 
   egress {
@@ -131,6 +141,7 @@ resource "aws_security_group" "web" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
   tags = {
@@ -138,7 +149,7 @@ resource "aws_security_group" "web" {
   }
 }
 
-# S3 Bucket
+# S3 Bucket for Terraform State
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.environment}-terraform-state-${data.aws_caller_identity.current.account_id}"
 
@@ -177,9 +188,5 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
-# Data sources
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
+# Data source for AWS Account ID and Region
 data "aws_caller_identity" "current" {}
