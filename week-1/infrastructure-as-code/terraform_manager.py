@@ -2,6 +2,7 @@
 """
 Day 4: Terraform state and infrastructure management using Boto3
 Learn: Manage Terraform state files in S3 and monitor infrastructure
+UPDATED: Fixed exception handling for bucket encryption and public access block
 """
 
 import boto3
@@ -10,7 +11,7 @@ import json
 from datetime import datetime
 
 class TerraformManager:
-    """Manage Terraform state and infrastructure"""
+    """Manage Terraform state and infrastructure with improved error handling"""
     
     def __init__(self, region='us-east-1', state_bucket=None):
         self.s3_client = boto3.client('s3', region_name=region)
@@ -157,7 +158,7 @@ class TerraformManager:
             return False
     
     def validate_state_bucket(self):
-        """Validate Terraform state bucket configuration"""
+        """Validate Terraform state bucket configuration with proper error handling"""
         if not self.state_bucket:
             print("❌ State bucket not configured")
             return False
@@ -171,9 +172,33 @@ class TerraformManager:
             status = versioning.get('Status', 'Not enabled')
             print(f"   Versioning: {status}")
             
-            # Check encryption
-            encryption = self.s3_client.get_bucket_encryption(Bucket=self.state_bucket)
-            print(f"   Encryption: Enabled")
+            # Check encryption - with proper exception handling
+            try:
+                encryption = self.s3_client.get_bucket_encryption(Bucket=self.state_bucket)
+                print(f"   Encryption: Enabled")
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'ServerSideEncryptionConfigurationNotFoundError':
+                    print(f"   Encryption: Not configured ⚠️")
+                else:
+                    print(f"   Encryption: Unable to verify ({e.response['Error']['Code']})")
+            
+            # Check public access block - with proper exception handling
+            try:
+                pab = self.s3_client.get_public_access_block(Bucket=self.state_bucket)
+                config = pab.get('PublicAccessBlockConfiguration', {})
+                all_blocked = all([
+                    config.get('BlockPublicAcls', False),
+                    config.get('BlockPublicPolicy', False),
+                    config.get('IgnorePublicAcls', False),
+                    config.get('RestrictPublicBuckets', False)
+                ])
+                status = "All blocked ✅" if all_blocked else "Partially blocked ⚠️"
+                print(f"   Public Access: {status}")
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'NoSuchPublicAccessBlockConfiguration':
+                    print(f"   Public Access: Not configured ⚠️ (Recommended to enable)")
+                else:
+                    print(f"   Public Access: Unable to verify ({e.response['Error']['Code']})")
             
             return True
         
@@ -193,6 +218,7 @@ if __name__ == "__main__":
     
     print("\n✅ TerraformManager initialized")
     print("Usage examples:")
+    print("  manager = TerraformManager(state_bucket='my-state-bucket')")
     print("  manager.list_state_files()")
     print("  manager.get_state_file('terraform.tfstate')")
     print("  manager.list_vpc_resources()")
