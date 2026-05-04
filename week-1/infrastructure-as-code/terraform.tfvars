@@ -7,8 +7,7 @@ instance_type  = "t2.micro"
 enable_monitoring = true
 
 tags = {
-  Project     = "cloud-security-automation"
-  Team        = "DevOps"
-  CostCenter  = "Engineering"
-  ManagedBy   = "Terraform"
+  Project   = "cloud-security-automation"
+  Team      = "DevOps"
+  ManagedBy = "Terraform"
 }
