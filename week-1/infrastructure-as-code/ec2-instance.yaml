@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'CloudFormation template to launch EC2 instance'
+Description: 'CloudFormation template to launch EC2 instance with regional AMI lookup'
 
 Parameters:
   InstanceType:
@@ -18,30 +18,51 @@ Parameters:
 
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
-    Description: Name of existing EC2 KeyPair
+    Description: Name of existing EC2 KeyPair. To create one, run 'aws ec2 create-key-pair --key-name my-key --region us-east-1'
+
+Mappings:
+  RegionAMI:
+    us-east-1:
+      AMI: ami-0c55b159cbfafe1f0
+    us-west-1:
+      AMI: ami-015954d5e5548d13b
+    us-west-2:
+      AMI: ami-0a8e758f5e873d1c1
+    eu-west-1:
+      AMI: ami-0d2a4a5d69e46ea0b
+    eu-central-1:
+      AMI: ami-0a1ee2fb28fe05df3
+    ap-southeast-1:
+      AMI: ami-0cd31be676780afa7
+    ap-northeast-1:
+      AMI: ami-0bba69335379e17f8
 
 Resources:
   # Security Group
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security group for web server
+      GroupDescription: Security group for web server - allows HTTP, HTTPS, SSH
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+          Description: HTTP access
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+          Description: HTTPS access
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+          Description: SSH access (note - restrict in production)
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
       Tags:
         - Key: Name
           Value: !Sub '${Environment}-web-sg'
@@ -60,6 +81,9 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-ec2-role'
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -71,7 +95,7 @@ Resources:
   WebServerInstance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-0c55b159cbfafe1f0
+      ImageId: !FindInMap [RegionAMI, !Ref 'AWS::Region', AMI]
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       SecurityGroups:
@@ -80,11 +104,13 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/bin/bash
+          set -e
           yum update -y
           yum install -y httpd
           systemctl start httpd
           systemctl enable httpd
           echo "<h1>Hello from $(hostname -f)</h1>" > /var/www/html/index.html
+          echo "Instance deployed successfully" >> /var/log/cloud-init-output.log
       Tags:
         - Key: Name
           Value: !Sub '${Environment}-web-server'
@@ -95,11 +121,21 @@ Outputs:
   InstanceId:
     Description: EC2 Instance ID
     Value: !Ref WebServerInstance
+    Export:
+      Name: !Sub '${Environment}-Instance-ID'
 
   PublicIP:
     Description: Public IP address of the instance
     Value: !GetAtt WebServerInstance.PublicIp
+    Export:
+      Name: !Sub '${Environment}-Instance-IP'
 
   SecurityGroupId:
     Description: Security Group ID
     Value: !Ref WebServerSecurityGroup
+    Export:
+      Name: !Sub '${Environment}-SecurityGroup-ID'
+
+  KeyPairNote:
+    Description: Important - KeyPair name used for this instance
+    Value: !Ref KeyName
