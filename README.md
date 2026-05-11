@@ -1,7 +1,7 @@
 # Cloud Security Automation Engineer - 26-Week Roadmap
 
 Goal: Get hired as Cloud Security Automation Engineer in 6 months
-Status: Week 1, Day 7 ✅
+Status: Week 2, Day 8 ✅
 Location: Turkey | Remote
 
 ## Progress
@@ -13,6 +13,7 @@ Location: Turkey | Remote
 - Day 5: EC2-S3 Policy Implementation + Git workflow ✅
 - Day 6: MFA Setup + Security Policy + Automation ✅
 - Day 7: CloudTrail & CloudWatch - Audit Logging and Monitoring ✅
+- Day 8: VPC & Network Security - Public/Private Subnets, Security Groups, NACLs ✅
 
 ## Week 1 Summary
 
